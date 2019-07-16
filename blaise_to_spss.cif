@@ -1,0 +1,226 @@
+[************************************************************************************
+ name: blaise_to_spss.cif
+ author: Alexandre Mairot (alexandre.mairot@sciencespo.fr)
+ title: export metadata BLAISE (*.bmi), data (*.csv) to SPSS syntax (*.spss)
+ program: BLAISE 4.8 - Cameleon
+ version: 5.2
+ based on "spss.cif" released by Statistics Netherlands written by Rob Groeneveld
+************************************************************************************]
+[VAR FirstWritten : BOOLEAN]
+[MAXNAMELENGTH:=64]
+[PROCEDURE initV5]
+    [VAR moduleFolder, moduleName, inCharge, moduleTitle, moduleDate : STRING]
+	[ASK moduleFolder 'Work folder: (without the last \)']
+	[ASK moduleName 'Name of the data file: (without the extension)']
+	[ASK moduleTitle 'Name of the survey:']
+	[ASK moduleDate 'Date of the day (YYYY-MM-DD):']
+	[ASK inCharge 'Person in-charge: (e-mail)']
+    [OUTFILE := moduleFolder+'\'+moduleName+'.sps']
+[ENDPROCEDURE]
+[PROCEDURE varlistV5]
+  [FirstWritten := false]
+  [BLOCKPROC]
+    [FIELDSLOOP]
+      [ARRAYLOOP]
+        [SETLOOP]
+          [IF FirstWritten THEN]
+            [/][&]
+          [ELSE] [FirstWritten:=true]
+          [ENDIF]
+          [IF TYPE = BLOCK THEN]
+            [BLOCKCALL]
+          [ELSEIF TYPE = INTEGER OR TYPE = ENUMERATED OR TYPE = DATE OR TYPE = SET THEN]
+            [:4][UPCASE(UNIQUENAME) :LENGTH(UNIQUENAME)][:2]F[FIELDLENGTH].0[&]
+          [ELSEIF TYPE = REAL THEN]
+            [:4][UPCASE(UNIQUENAME) :LENGTH(UNIQUENAME)][:2]COMMA[FIELDLENGTH].[NUMBEROFDECIMALS][&]
+          [ELSEIF TYPE = OPEN THEN]
+            [:4][UPCASE(UNIQUENAME) :LENGTH(UNIQUENAME)][:2]A32767[&]
+          [ELSEIF TYPE = STRING OR TYPE = CLASSIFICATION THEN]
+            [:4][UPCASE(UNIQUENAME) :LENGTH(UNIQUENAME)][:2]A[FIELDLENGTH][&]
+          [ELSEIF TYPE = TIME THEN]
+            [:4][UPCASE(UNIQUENAME) :LENGTH(UNIQUENAME)][:2](TIME[&][FIELDLENGTH])[&]
+          [ENDIF]
+        [ENDSETLOOP]
+      [ENDARRAYLOOP]
+    [ENDFIELDSLOOP]
+  [ENDBLOCKPROC]
+[ENDPROCEDURE]
+[PROCEDURE varmissV5][*Missing values of the nominal variables]
+[BLOCKPROC]
+  [FIELDSLOOP][&]
+    [ARRAYLOOP][&]
+      [SETLOOP][&]
+        [FirstWritten := true][&]
+        [IF TYPE = BLOCK THEN][&]
+          [BLOCKCALL][&]
+        [ELSEIF TYPE <> OPEN THEN][&]
+          [ANSWERLOOP][&]
+            [IF FirstWritten THEN][&]
+              [IF ANSWERNAME='npr' OR ANSWERNAME='rr' OR ANSWERNAME='nsp' OR ANSWERNAME='nc' OR ANSWERNAME='xvm' OR ANSWERNAME='xne' THEN][&]
+                []MISSING VALUES[:1][UNIQUENAME :LENGTH(UNIQUENAME)][:1]([ANSWERCODE][&] THRU HIGHEST).
+                [FirstWritten:= false][&]
+                [ENDIF][&]
+              [ENDIF][&]
+          [ENDANSWERLOOP][&]
+        [ENDIF][&]
+      [ENDSETLOOP][&]
+    [ENDARRAYLOOP][&]
+  [ENDFIELDSLOOP][&]
+[ENDBLOCKPROC][&]
+[ENDPROCEDURE]
+[PROCEDURE vallabV5][*Labels of the variable items]
+  [BLOCKPROC]
+    [FIELDSLOOP]
+      [ARRAYLOOP]
+        [SETLOOP]
+          [IF TYPE = BLOCK THEN]
+            [BLOCKCALL]
+          [ELSEIF TYPE = SET OR TYPE = ENUMERATED THEN]
+            []VALUE LABELS[:2][UNIQUENAME :LENGTH(UNIQUENAME)]
+            [ANSWERLOOP]
+              [IF ANSWERTEXT <> '' THEN]
+                [IF LENGTH(ANSWERTEXT)<=120 THEN]
+                  [:2][ANSWERCODE][:2]"[ANSWERTEXT]"
+                [ELSE]
+                  [:2][ANSWERCODE][:2]"[COPY(ANSWERTEXT, 1, 120)]"
+                [ENDIF]
+              [ELSE]
+                [:2][ANSWERCODE][:2]"[ANSWERNAME]"
+              [ENDIF]
+            [ENDANSWERLOOP]
+            [].[/]
+          [ENDIF]
+        [ENDSETLOOP]
+      [ENDARRAYLOOP]
+    [ENDFIELDSLOOP]
+  [ENDBLOCKPROC]
+[ENDPROCEDURE]
+[PROCEDURE varlabV5][*Labels of the variables]
+    [FirstWritten := FALSE]
+    [BLOCKPROC]
+        [FIELDSLOOP]
+            [ARRAYLOOP]
+                [SETLOOP]
+                    [IF TYPE = BLOCK THEN]
+                        [BLOCKCALL]
+                    [ELSE]
+                        [IF TYPE <> OPEN THEN]
+                            [IF FIELDLABEL <> '' THEN]
+                                [IF FirstWritten THEN]
+                                    [/]
+                                [ELSE] [FirstWritten := TRUE]
+                                [ENDIF]
+                                [:8][UNIQUENAME :LENGTH(UNIQUENAME)][:3]"[COPY(FIELDLABEL, 1, 255)]"[&]
+                            [ENDIF]
+                        [ENDIF]
+                    [ENDIF]
+                [ENDSETLOOP]
+            [ENDARRAYLOOP]
+        [ENDFIELDSLOOP]
+    [ENDBLOCKPROC]
+[ENDPROCEDURE]
+[PROCEDURE varattbV5][*Attributes of the variables]
+    [FirstWritten := FALSE]
+    [BLOCKPROC]
+        [FIELDSLOOP]
+            [ARRAYLOOP]
+                [SETLOOP]
+                    [IF TYPE = BLOCK THEN]
+                        [BLOCKCALL]
+                    [ELSE]
+                        [IF TYPE <> OPEN THEN]
+                            [IF FIELDLABEL <> '' THEN]
+                                [IF FirstWritten THEN]
+                                    [/]
+                                [ELSE] [FirstWritten := TRUE]
+                                [ENDIF]
+                                []VARIABLE ATTRIBUTE VARIABLES=[FIELDNAME][:2]ATTRIBUTE=question[[1]]("[LONGCOPY(FIELDTEXT,1,120)]").[&]
+                                [IF TEXTLENGTH(FIELDTEXT)>120 THEN][/]VARIABLE ATTRIBUTE VARIABLES=[FIELDNAME][:3]ATTRIBUTE=question[[2]]("[LONGCOPY(FIELDTEXT,121,120)][]"). [ELSE] [&] [ENDIF]
+                                [IF TEXTLENGTH(FIELDTEXT)>240 THEN][/]VARIABLE ATTRIBUTE VARIABLES=[FIELDNAME][:2]ATTRIBUTE=question[[3]]("[LONGCOPY(FIELDTEXT,241,120)][]"). [ELSE] [&] [ENDIF]
+                                [IF TEXTLENGTH(FIELDTEXT)>360 THEN][/]VARIABLE ATTRIBUTE VARIABLES=[FIELDNAME][:2]ATTRIBUTE=question[[4]]("[LONGCOPY(FIELDTEXT,361,120)][]"). [ELSE] [&] [ENDIF]
+                                [IF TEXTLENGTH(FIELDTEXT)>480 THEN][/]VARIABLE ATTRIBUTE VARIABLES=[FIELDNAME][:2]ATTRIBUTE=question[[5]]("[LONGCOPY(FIELDTEXT,481,120)][]"). [ELSE] [&] [ENDIF]
+                                [IF TEXTLENGTH(FIELDTEXT)>600 THEN][/]VARIABLE ATTRIBUTE VARIABLES=[FIELDNAME][:2]ATTRIBUTE=question[[6]]("[LONGCOPY(FIELDTEXT,601,120)][]"). [ELSE] [&] [ENDIF]
+                                [IF TEXTLENGTH(FIELDTEXT)>720 THEN][/]VARIABLE ATTRIBUTE VARIABLES=[FIELDNAME][:2]ATTRIBUTE=question[[7]]("[LONGCOPY(FIELDTEXT,721,120)][]"). [ELSE] [&] [ENDIF]
+                            [ENDIF]
+                        [ENDIF]
+                    [ENDIF]
+                [ENDSETLOOP]
+            [ENDARRAYLOOP]
+        [ENDFIELDSLOOP]
+    [ENDBLOCKPROC]
+[ENDPROCEDURE]
+[PROCEDURE syntaxeV5]
+[initV5]
+[]*************************************************************.
+[]* module name: [moduleName].sps
+[]* module in-charge: [inCharge]
+[]* module title: [moduleTitle]
+[]* module program: SPSS
+[]* module version date: [moduleDate]
+[]*************************************************************.
+[/]
+[]DATASET CLOSE ALL.
+[]OUTPUT CLOSE ALL.
+[]*************************************************************.
+[]* Part 1: loading of the data file.
+[]*************************************************************.
+[]GET DATA
+[:2]/TYPE = TXT
+[:2]/FILE = "[moduleFolder]\[moduleName].csv"
+[:2]/DELCASE = LINE
+[:2]/DELIMITERS = "|"
+[:2]/ARRANGEMENT = DELIMITED
+[:2]/FIRSTCASE = 2
+[:2]/IMPORTCASE = ALL
+[:2]/VARIABLES =
+[varlistV5][&].
+[]EXECUTE.
+[/]
+[]*************************************************************.
+[]* Part 2 : documentation of the data.
+[]*************************************************************.
+[/]
+[]* step 1 : missing values of the categorial variables.
+[/]
+[][varmissV5]
+[/]
+[]* step 2 : labels of the variable items.
+[/]
+[LANGUAGE:= 'META_1']
+[vallabV5]
+[/]
+[]* step 3 : labels of the variables.
+[/]
+[LANGUAGE:= 'META_1']
+[]VARIABLE LABELS
+[][varlabV5].
+[/]
+[]* step 4 : the literal questions.
+[/]
+[LANGUAGE:='FRA']
+[][varattbV5][/]
+[]EXECUTE.
+[/]
+[]*************************************************************.
+[]* Part 3 : saving the data file.
+[]*************************************************************.
+[/]
+[]* step 1 : definition of the file structure.
+[/]
+[]DATAFILE ATTRIBUTE ATTRIBUTE= $VariableView2[[1]]('name')  $VariableView2[[2]]('label')
+[:4]$VariableView2[[3]]('values')   $VariableView2[[4]]('missing') $VariableView2[[5]]('@question')
+[:4]$VariableView2[[6]]('type')  $VariableView2[[7]]('columns')
+[:4]$VariableView2[[8]]('width')  $VariableView2[[9]]('decimals')
+[:4]$VariableView2[[10]]('alignment')   $VariableView2[[11]]('measure')
+[:4]$VariableView2[[12]]('role').
+[]EXECUTE.
+[/]
+[]* step 2 : saving the data file.
+[/]
+[]SAVE /OUTFILE [:4]"[moduleFolder]\[moduleName].sav"
+[]/COMPRESSED.
+[ENDPROCEDURE]
+[***********************************************************************
+ Script launcher
+************************************************************************]
+[syntaxeV5]
