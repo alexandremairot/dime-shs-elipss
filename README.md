@@ -7,3 +7,4 @@ Go to the <a href="https://github.com/alexandremairot/dime_shs_elipss/wiki">Wiki
 + <a href="https://www.ibm.com/products/spss-statistics">SPSS</a></br>
 + <a href="https://www.insee.fr/fr/information/2021902">SAS macro CALMAR</a> builded by INSEE</br>
 + <a href="https://www.r-project.org/">R</a> associated with Excel spreadsheets</p>
+<p>This project was presented at the <a href="https://doi.org/10.5281/zenodo.3568058">EDDI19</a> conference.</p>
