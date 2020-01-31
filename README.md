@@ -1,5 +1,5 @@
 # dime_shs_elipss
-Programs and scripts built and used for the data managing of the ELIPSS project.</br>
+Programs and scripts built and used for the <b>data managing</b> and the <b>data documentation</b> of the ELIPSS project.</br>
 Go to the <a href="https://github.com/alexandremairot/dime_shs_elipss/wiki">Wiki area</a> for more information.</br>
 <p>Software used for running the programs and the scripts</br>
 + <a href="https://www.blaise.com/products/blaise-4">BLAISE 4</a></br>
